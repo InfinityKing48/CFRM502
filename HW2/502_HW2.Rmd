@@ -1,0 +1,98 @@
+---
+title: "502_HW2"
+author: "Shengbo Jin"
+date: "1/19/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1
+
+![](images/1.png)
+
+## Q2
+
+![](images/2.png)
+
+### (c)
+
+```{r}
+n <- 12
+p <- 3
+sigma <- 1 
+X <- matrix(rnorm(n * p), n, p)
+X <- cbind(1, X)
+H <- X %*% solve(t(X) %*% X) %*% t(X)
+Cov <- sigma^2 * (diag(nrow(H)) - H)
+D <- diag(diag(Cov)^(-0.5))
+(Corr <- round(t(D) %*% Cov %*% D, 2))
+```
+
+## Q3
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+library(AER)
+data(USMacroG)
+USMacroG.subset <- USMacroG[,c("gdp","invest","government","m1","tbill","unemp",
+                               "inflation")]
+macro.diff <- na.omit(data.frame(apply(USMacroG.subset, 2, diff)))
+attach(macro.diff)
+```
+
+### (a)
+
+```{r}
+pairs(macro.diff)
+corrplot::corrplot.mixed(cor(macro.diff), upper="ellipse")
+```
+
+### (b)
+
+```{r}
+fit1 <- lm(tbill ~ gdp)
+fit2 <- lm(tbill ~ gdp + inflation)
+fit3 <- lm(tbill ~ gdp + unemp)
+summary(fit1)$coef[2, 4]
+summary(fit2)$coef[2, 4]
+summary(fit3)$coef[2, 4]
+```
+
+For Model 1, the gdp is statistically significant at a 5% level; For Model 2, the gdp is statistically significant at a 5% level in the presence of all the other predictors; For Model 3, the gdp is not statistically significant at a 5% level, but the other predictors are.
+
+For Model 3, the gdp predictor does not add more predictive power to the information already included in the unemp predictor. The gdp predictor is significant in a model that only includes it or with inflation.
+
+### (c)
+
+```{r}
+newdata <- data.frame(gdp=60, unemp=0.1)
+predict(fit3, newdata=newdata, interval="prediction", level=0.90)
+predict(fit3, newdata=newdata, interval="confidence", level=0.90)
+```
+
+### (d)
+
+```{r}
+fullfit <- lm(tbill ~ gdp + invest + government + m1 + unemp + inflation )
+summary(fullfit)$coef[6, 1]
+```
+
+The change in the Treasury bill rate is predicted to be -0.612 for each unit change in the unemployment rate with no change in other variables.
+
+### (e)
+
+```{r}
+anova.fullfit <- anova(fullfit)
+(P <- sum(anova.fullfit[1:6, 2]) / sum(anova.fullfit[1:7, 2]))
+```
+
+### (f)
+
+```{r}
+fit.reduced <- lm(tbill ~ m1 + unemp + inflation)
+anova(fit.reduced, fullfit)
+```
+
+At a 5% significance level, we fail to reject H0 that beta1=beta2=beta3=0.
