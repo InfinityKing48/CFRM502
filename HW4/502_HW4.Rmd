@@ -1,0 +1,231 @@
+---
+title: "502_HW4"
+author: "Shengbo Jin"
+date: "2/2/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1
+
+### (a)
+
+```{r}
+set.seed(446)
+n <- 100
+x1 <- runif(n)
+eps <- rnorm(n)
+y <- 1 + 3*x1 + x1*eps
+
+model.a1 <- lm(y~x1)
+par(mfrow=c(2,2))
+plot(model.a1)
+```
+
+Checking for nonlinearity, the first plot does not show a systematic nonlinear trend, which is consistent with the true model; Checking for nonnormality, the second plot shows the residuals are not normally distributed (heavy-tailed), which is consistent with the true model; Checking for nonconstant variance, the third plot shows a systematic trend due to the variability of residuals changing over Yi, which is consistent with the true model.
+
+```{r}
+set.seed(446)
+n <- 10000
+x1 <- runif(n)
+eps <- rnorm(n)
+y <- 1 + 3*x1 + x1*eps
+
+model.a2 <- lm(y~x1)
+par(mfrow=c(2,2))
+plot(model.a2, cex=0.25)
+```
+
+### (b)
+
+```{r}
+set.seed(576)
+n <- 100
+x1 <- runif(n)
+x2 <- sample(factor(c("A","B","C")), replace=TRUE, size=n)
+eps <- rnorm(n)
+y <- 1 + 2*x1 + -1*(x2=="B") + 4*(x2=="C") + eps
+
+model.b1 <- lm(y~x1+x2)
+par(mfrow=c(2,2))
+plot(model.b1)
+```
+
+Checking for nonlinearity, the first plot does not show a systematic nonlinear trend, which is consistent with the true model; Checking for nonnormality, the second plot shows the residuals are normally distributed, which is consistent with the true model; Checking for nonconstant variance, the third plot does not shows a systematic trend, which is consistent with the true model.
+
+```{r}
+set.seed(576)
+n <- 10000
+x1 <- runif(n)
+x2 <- sample(factor(c("A","B","C")), replace=TRUE, size=n)
+eps <- rnorm(n)
+y <- 1 + 2*x1 + -1*(x2=="B") + 4*(x2=="C") + eps
+
+model.b2 <- lm(y~x1+x2)
+par(mfrow=c(2,2))
+plot(model.b2, cex=0.25)
+```
+
+### (c)
+
+```{r}
+set.seed(308)
+n <- 100
+x1 <- runif(n, min=0.5, max=1)
+x2 <- runif(n, min=0.5, max=1)
+eps <- rnorm(n)
+y <- exp(5+x1+x2) + eps
+
+model.c1 <- lm(y~x1+x2)
+par(mfrow=c(2,2))
+plot(model.c1)
+```
+
+Checking for nonlinearity, the first plot shows a systematic nonlinear trend, which is consistent with the true model; Checking for nonnormality, the second plot shows the residuals are not normally distributed, which is not consistent with the true model; Checking for nonconstant variance, the third plot shows a systematic trend due to the variability of residuals changing over Yi, which is not consistent with the true model.
+
+```{r}
+sim_reg <- data.frame(y, x1, x2)
+pairs(sim_reg)
+```
+
+There is nonlinearity between x1 and x2 from the scatterplot matrix.
+
+```{r}
+model.c2 <- nls(y~exp(b1+b2*x1+b3*x2), start=list(b1=5,b2=1,b3=1))
+summary(model.c2)
+```
+
+```{r}
+par(mfrow=c(2,2))
+
+preds <- list(x1, x2)
+labs <- c("x1", "x2")
+for (p in 1:length(preds)){
+  x <- preds[[p]]
+  plot(x, resid(model.c2), xlab = labs[p], ylab = "Residuals")
+  smoother <- loess(resid(model.c2)~x)
+  ord <- order(x)
+  lines(x[ord], fitted(smoother)[ord], col="red")
+}
+
+plot(fitted(model.c2), abs(resid(model.c2)), xlab="Fitted values", 
+     ylab="Absolute residuals")
+fit_loess <- loess(abs(resid(model.c2))~fitted(model.c2), span=1, deg=1)
+ord_NLS <- order(fitted(model.c2))
+lines(fitted(model.c2)[ord_NLS], fit_loess$fit[ord_NLS], col="red")
+
+qqnorm(resid(model.c2), main="")
+qqline(resid(model.c2))
+```
+
+Checking for nonlinearity, the first and second plot do not show a systematic nonlinear trend, which is consistent with the true model; Checking for nonconstant variance, the third plot does not shows a systematic trend, which is consistent with the true model; Checking for nonnormality, the last plot shows the residuals are normally distributed, which is consistent with the true model.
+
+## Q2
+
+```{r}
+load("Homework 4 Data.Rdata")
+attach(centralbank)
+head(centralbank)
+```
+
+### (a)
+
+```{r}
+model.a <- lm(Inflation~Legal+Turnover+Industrial)
+par(mfrow=c(2,2))
+plot(model.a)
+```
+
+Checking for nonlinearity, the first plot shows a systematic nonlinear trend; Checking for nonnormality, the second plot shows the residuals are not normally distributed; Checking for nonconstant variance, the third plot shows a systematic trend due to the variability of residuals changing over Yi.
+
+### (b)
+
+```{r}
+library(MASS)
+L.max <- boxcox(Inflation~Legal+Turnover+Industrial, ylab="Log-likelihood")
+alpha <- L.max$x[which.max(L.max$y)]
+Inflation.bc <- Inflation^alpha
+model.bc <- lm(Inflation.bc~Legal+Turnover+Industrial)
+
+par(mfrow=c(2,2))
+plot(model.bc)
+```
+
+The residual plots now show that the residuals are more consistent with constant variance and normality. And there is no apparent nonlinearity.
+
+### (c)
+
+```{r}
+minresid <- min(rstudent(model.bc))
+maxresid <- max(rstudent(model.bc))
+plot(rstudent(model.bc), ylim = c(min(-5, minresid), 
+     max(5, maxresid)), ylab="Externally studentized residuals")
+abline(h=c(-3, 3), col="red")
+
+centralbank[rstudent(model.bc) > 2.8, ]
+```
+
+There is no data point with an externally studentized residual larger than 3. However, Singapore may be an outlier.
+
+```{r}
+par(mfrow=c(1,2))
+plot(sqrt(cooks.distance(model.bc)), ylim=c(0,0.5), 
+     ylab=("Sqrt Cook's distance"))
+
+library(faraway)
+halfnorm(sqrt(cooks.distance(model.bc)), ylab=("Sqrt Cook's D"))
+
+centralbank[52, ]
+```
+
+Singapore is an influential point.
+
+### (d)
+
+```{r}
+summary(model.bc)
+```
+
+Legal is not statistically significant at a 5% significance level. The validity of the hypothesis test is strong.
+
+### (e)
+
+![](images/1.png)
+
+```{r}
+CI <- predict(model.bc, 
+        newdata=centralbank[row.names(centralbank) == "United States", ],
+        interval="prediction", level=0.90)^(1/alpha)
+upr <- CI[2]
+lwr <- CI[3]
+CI[2] <- lwr; CI[3] <- upr
+CI
+```
+
+## Q3
+
+```{r}
+attach(ibm)
+head(ibm)
+```
+
+### (a)
+
+```{r}
+y <- as.numeric(trades == 0)
+x <- log(duration)
+
+fit <- glm(y~x, family=binomial(link="logit"), data=data.frame(y, x))
+summary(fit)
+```
+
+### (b)
+
+![](images/2.png)
+
+```{r}
+(d <- exp(-summary(fit)$coef[1,1]/summary(fit)$coef[2,1]))
+```
