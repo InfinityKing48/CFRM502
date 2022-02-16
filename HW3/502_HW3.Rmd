@@ -1,0 +1,125 @@
+---
+title: "502_HW3"
+author: "Shengbo Jin"
+date: "1/29/2022"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1
+
+```{r message=FALSE, warning=FALSE, paged.print=FALSE}
+load("Homework 3 Data.Rdata")
+attach(mac)
+head(mac)
+```
+
+### (a)
+
+```{r}
+library(leaps)
+best.subsets <- regsubsets(BigMac ~ ., data = data.frame(BigMac, Bread, 
+                           WorkHrs, VacDays, BusFare, Service, TeachSal, 
+                           TeachTax, EngSal, EngTax), nvmax = 9) 
+(b <-summary(best.subsets))
+```
+
+```{r}
+plot(1:9, b$adjr2, type="b", xlab="Number of predictors", ylab="Adjusted R2")
+plot(1:9, b$bic, type="b", xlab="Number of predictors", ylab="BIC")
+plot(1:9, b$cp, type="b",xlab="Number of predictors", ylab="Cp")
+```
+
+Under adjusted R2, BIC and Mallow's Cp criteria, the best model is the 5 predictor model with predictors BusFare, Service, TeachSal, TeachTax and EngSal.
+
+### (b)
+
+For each fixed k, the best model is the same regardless of which criteria is used, and is equivalent to minimizing the residual sum of squares.
+
+```{r}
+extractAIC(lm(BigMac~TeachSal))
+extractAIC(lm(BigMac~TeachSal+TeachTax))
+extractAIC(lm(BigMac~BusFare+TeachSal+TeachTax))
+extractAIC(lm(BigMac~BusFare+TeachSal+TeachTax+EngSal))
+extractAIC(lm(BigMac~BusFare+Service+TeachSal+TeachTax+EngSal))
+extractAIC(lm(BigMac~Bread+BusFare+Service+TeachSal+TeachTax+EngSal))
+extractAIC(lm(BigMac~Bread+VacDays+BusFare+Service+TeachSal+TeachTax+EngSal))
+extractAIC(lm(BigMac~Bread+VacDays+BusFare+Service+TeachSal+TeachTax+EngSal
+              +EngTax))
+extractAIC(lm(BigMac~Bread+WorkHrs+VacDays+BusFare+Service+TeachSal+TeachTax
+              +EngSal+EngTax))
+```
+
+Under AIC criterion, the best model is 5 predictors model with predictors BusFare, Service, TeachSal, TeachTax and EngSal.
+
+### (c)
+
+```{r}
+best.subsets<- regsubsets(BigMac ~ ., data = data.frame(BigMac, Bread, WorkHrs,
+                          VacDays, BusFare, Service, TeachSal, TeachTax, 
+                          EngSal, EngTax), nvmax = 1) 
+(b <-summary(best.subsets))
+```
+
+TeachSal is best for modeling BigMac.
+
+### (d)
+
+```{r}
+library(MASS)
+stepAIC(lm(BigMac~Bread+WorkHrs+VacDays+BusFare+Service+TeachSal+TeachTax
+           +EngSal+EngTax), direction="both")
+```
+
+Using stepwise selection, the best model in terms of AIC is BigMac ~ BusFare + Service + TeachSal + TeachTax + EngSal.
+
+### (e)
+
+```{r}
+library(faraway) 
+fit1 <- lm(BigMac~Bread+WorkHrs+VacDays+BusFare+Service+TeachSal+TeachTax
+           +EngSal+EngTax)
+fit2 <- lm(BigMac~BusFare+Service+TeachSal+TeachTax+EngSal)
+
+vif(fit1)
+vif(fit2)
+```
+
+In the full set of predictors, TeachSal, TeachTax, EngSal and EngTax are clearly collinear as their VIF is very large. The model selection has reduced it with smaller VIF of TeachSal, TeachTax and EngSal.
+
+## Q2
+
+### (a)
+
+```{r}
+set.seed(100)
+n <- 100
+x1 <- rnorm(n)
+x2 <- rnorm(n)
+x3 <- x1+x2+rnorm(n, sd=0.001)
+eps <- rnorm(n, sd=0.1)
+y <- 3*x1+3*x2+eps
+summary(lm(y~x1+x2+x3))
+```
+
+For X1, p-value is 0.214 which is larger than 0.05, we fail to reject H0. The coefficient of X1 should be 0,
+which is less than the true value 3; For X2, p-value is 0.214 which is larger than 0.05, we fail to reject H0.
+The coefficient of X2 should be 0, which is less than the true value 3; For X3, p-value is 0.331 which is larger than 0.05, we fail to reject H0. The coefficient of X3 should be 0, which is equal to the true value 0. To some extent, the t-test shows Y has no relationship with X1 and X2. But, in reality, X1 and X2 make up Y. The multicollinearity greatly decreases the reliability of the test results.
+
+### (b)
+
+```{r}
+set.seed(100)
+n <- 10000
+x1 <- rnorm(n)
+x2 <- rnorm(n)
+x3 <- x1+x2+rnorm(n, sd=0.001)
+eps <- rnorm(n, sd=0.1)
+y <- 3*x1+3*x2+eps
+summary(lm(y~x1+x2+x3))
+```
+
+Basically Correct. From the test results, we can see the p-value becomes 0.000993, 0.000995, 0.806109. Hence the coefficient of X1 and X2 are statistically significant and close to the true value. And X3 is not statistically significant, which means X3 should be 0. The test result matches better with our real model. Thus, increasing the sample size can address multicollinearity.
