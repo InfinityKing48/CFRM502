@@ -1,0 +1,120 @@
+---
+title: "502_HW5"
+author: "Shengbo Jin"
+date: "2/16/2022"
+output: pdf_document
+editor_options: 
+  markdown: 
+    wrap: 72
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Q1
+
+```{r}
+load("Homework 5 Data.Rdata")
+strips <- strips[order(strips$T), ]
+for.rate <- -diff(log(strips$price)) / diff(strips$T)
+mat <- strips$T[-1]
+```
+
+### (a)
+
+Use all points as knots, and specify spar=0 to interpolate the data.
+
+```{r}
+fit.cubic <- smooth.spline(mat, for.rate, all.knots=TRUE, spar=0)
+plot(mat, for.rate)
+lines(fit.cubic, lwd=2)
+```
+
+### (b)
+
+```{r}
+df_space <- seq(from=2, to=116, length.out=100)
+cvc <- c()
+
+for (i in df_space) {
+   fit.cubic <- smooth.spline(mat, for.rate, df=i, cv=TRUE)
+   cvc <- append(cvc, fit.cubic$cv.crit)
+}
+
+plot(df_space, cvc)
+```
+
+### (c)
+
+```{r}
+fit.cubic <- smooth.spline(mat, for.rate, cv=TRUE)
+
+library(KernSmooth)
+h <- dpill(mat, for.rate)
+fit.locpoly <- locpoly(mat, for.rate, bandwidth=h, degree=1)
+
+plot(mat, for.rate)
+lines(fit.cubic, lwd=2, col='red')
+lines(fit.locpoly, lwd=2, col='blue')
+```
+
+### (d)
+
+```{r}
+x.grid <- seq(max(mat), 40, len=100)
+predict.cubic <- predict(fit.cubic, x.grid)
+
+plot(mat, for.rate, xlim=c(0,40), ylim=c(-0.4,0.1))
+lines(fit.cubic, lwd=2, col='red')
+lines(fit.locpoly, lwd=2, col='blue')
+
+points(predict.cubic$x, predict.cubic$y, col='red', cex=0.5)
+
+for (x in x.grid) {
+   wn <- dnorm(mat, mean=x, sd=h)
+   fit <- lm(for.rate~I(mat-x), weights=wn)
+   points(x, coef(fit)[1], col='blue', cex=0.5)
+}
+```
+
+Cubic smoothing spline is more reasonable than local polynomial regression. Forward rates cannot be negative in reality.
+
+## Q2
+
+![](images/1.png)
+
+## Q3
+
+![](images/2.png)
+
+### (a)
+
+```{r}
+Mod(polyroot(c(1,0.5)))
+
+```
+
+autoregressive polynomial!=0 for all complex numbers \|z\|\<=1, so there
+exists a unique causal stationary solution.
+
+### (b)
+
+```{r}
+Mod(polyroot(c(1,-5,8,0,0,-2)))
+```
+
+There are two roots make autoregressive polynomial=0 with \|z\|\<=1, so
+there does not exists a causal stationary solution.
+
+## Q4
+
+![](images/3.png)
+
+![](images/4.png)
+
+```{r}
+A <- matrix(c(1,0.5,0,0.5,1,0.5,0,0,1), nrow=3)
+c <- matrix(c(2.75,0.5,-1), nrow=3)
+solve(A) %*% c
+```
